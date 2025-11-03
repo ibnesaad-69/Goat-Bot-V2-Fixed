@@ -3,26 +3,26 @@ const fs = require("fs-extra");
 
 module.exports = {
   config: {
-    name: "rip",
+    name: "putin",
     version: "1.1",
-    author: "MILAN",
+    author: "KSHITIZ",
     countDown: 5,
     role: 0,
-    shortDescription: "rip image",
-    longDescription: "rip image",
-    category: "fun",
+    shortDescription: "putin meeting",
+    longDescription: "",
+    category: "meme",
     guide: {
-      vi: "{pn} [@tag | blank]",
+      vi: "",
       en: "{pn} [@tag]"
     }
   },
 
   onStart: async function ({ event, message, usersData }) {
- const uid = Object.keys(event.mentions)[0]
- if(!uid) return message.reply("please mention someone")
+    const uid = Object.keys(event.mentions)[0]
+    if(!uid) return message.reply("Mention someone")
     const avatarURL = await usersData.getAvatarUrl(uid);
-    const img = await new DIG.Rip().getImage(avatarURL);
- const pathSave = `${__dirname}/tmp/${uid}_Rip.png`;
+    const img = await new DIG.Poutine().getImage(avatarURL);
+    const pathSave = `${__dirname}/tmp/${uid}_Poutine.png`;
     fs.writeFileSync(pathSave, Buffer.from(img));
     message.reply({
       attachment: fs.createReadStream(pathSave)
