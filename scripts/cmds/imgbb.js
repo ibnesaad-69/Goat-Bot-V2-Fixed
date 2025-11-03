@@ -1,75 +1,51 @@
-const FormData = require('form-data');
-const axios = require('axios');
-const { getStreamFromURL } = global.utils;
-const regCheckURL = /^(http|https):\/\/[^ "]+$/;
+const fetch = require('node-fetch');
 
 module.exports = {
-  config: {
-    name: "imgbb",
-    version: "1.0",
-    author: "Jubayer",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Upload image to ImgBB",
-    longDescription: "Upload an image or GIF to ImgBB and get the direct link",
-    category: "utility",
-    guide: "{pn}imgbb <image_url_or_reply_to_image>"
-  },
+	config: {
+		name: "imgbb",
+		version: "1.0",
+		author: "Samir Œ",
+		countDown: 5,
+		role: 0,
+		shortDescription: "Upload an image to imgbb",
+		longDescription: "Upload an image to imgbb",
+		category: "utility",
+		guide: "{pn} <attached image>"
+	},
 
-  onStart: async function ({ message, event, args, api, commandName }) {
-    if (this.config.author !== "Jubayer") {
-      return message.reply(`[❌] • Unauthorized modification detected in "${commandName}" command. Author mismatch.`);
-    }
+	onStart: async function ({ message, event }) {
+		try {
+			const attachments = event.messageReply.attachments;
+			if (!attachments || attachments.length === 0) {
+				return message.reply("Please reply to a message with an attached image to upload.");
+			}
 
-    try {
-      let imageStream;
-      let isGif = false;
+			const imageUrl = attachments[0].url;
 
-      if (event.messageReply?.attachments?.length > 0) {
-        const attachment = event.messageReply.attachments[0];
-        if (attachment.type === "photo" || attachment.type === "animated_image") {
-          imageStream = await getStreamFromURL(attachment.url);
-          isGif = attachment.type === "animated_image";
-        }
-      }
-      else if (args[0] && regCheckURL.test(args[0])) {
-        imageStream = await getStreamFromURL(args[0]);
-        isGif = args[0].toLowerCase().endsWith('.gif');
-      } else {
-        return message.reply("[⚜️] • Please provide an image URL or reply to an image/GIF.");
-      }
+			const uploadUrl = 'https://api-samir.onrender.com/upload';
+			const data = { file: imageUrl };
 
-      if (!imageStream) {
-        return message.reply("Failed to get image stream ❌.");
-      }
+			const response = await fetch(uploadUrl, {
+				method: 'POST',
+				headers: {
+					'Accept': 'application/json',
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(data)
+			});
 
-      const authResponse = await axios.get('https://imgbb.com');
-      const auth_token = authResponse.data.match(/auth_token="([^"]+)"/)[1];
+			const result = await response.json();
 
-      const form = new FormData();
-      form.append('source', imageStream);
-      form.append('type', 'file');
-      form.append('action', 'upload');
-      form.append('timestamp', Date.now());
-      form.append('auth_token', auth_token);
+			if (result && result.image && result.image.url) {
+				const cleanImageUrl = result.image.url.split('-')[0]; 
 
-      const response = await axios.post('https://imgbb.com/json', form, {
-        headers: {
-          ...form.getHeaders()
-        }
-      });
-
-      if (response.data.success) {
-        const imageUrl = response.data.image.url;
-        const finalUrl = isGif ? `${imageUrl}.gif` : `${imageUrl}.jpeg`;
-        
-        return message.reply(`Image uploaded successfully!✅\n\nLink: ${finalUrl}`);
-      } else {
-        return message.reply("Failed to upload image to ImgBB ⁉️.");
-      }
-    } catch (error) {
-      console.error(error);
-      return message.reply("An error occurred while uploading the image.");
-    }
-  }
+				message.reply({body: `${cleanImageUrl}.jpg`})
+			} else {
+				message.reply("Failed to upload the image to imgbb.");
+			}
+		} catch (error) {
+			console.error('Error:', error);
+			message.reply(`Error: ${error}`);
+		}
+	}
 };
